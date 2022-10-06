@@ -34,6 +34,11 @@ namespace DemoMongoDB.Services
             _bookStoreDb = mongoDatabase;
         }
 
+        /// <summary>
+        /// Lấy danh sách book
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         public async Task<List<Book>> GetAsync(PageResultBookDto input)
         {
             // search
@@ -48,6 +53,15 @@ namespace DemoMongoDB.Services
             }
             return await _booksCollection.Find(filter).Skip(input.Skip).Limit(input.PageSize).ToListAsync();
         }
+
+        /// <summary>
+        /// Lấy danh sách theo filter của FE (dạng Json)
+        /// </summary>
+        /// <param name="pageNumber"></param>
+        /// <param name="pageSize"></param>
+        /// <param name="filterEqual"></param>
+        /// <param name="filterLike"></param>
+        /// <returns></returns>
         public async Task<List<Book>> GetAsyncWithFilter(int pageNumber, int? pageSize, string filterEqual, string filterLike)
         {
             var filter = new BsonDocument { };
@@ -64,6 +78,11 @@ namespace DemoMongoDB.Services
             return await _booksCollection.Find(filter).Skip(pageSize * pageNumber).Limit(pageSize).ToListAsync();
         }
 
+        /// <summary>
+        /// Tạo Json để test API filter
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         public string CreateJsonParams(CreateJsonParamsDto input)
         {
             return JsonConvert.SerializeObject(new 
@@ -73,6 +92,11 @@ namespace DemoMongoDB.Services
             });
         }
 
+        /// <summary>
+        /// Lấy danh sách bằng LinQ
+        /// </summary>
+        /// <param name="input"></param>
+        /// <returns></returns>
         public List<Book> GetAsyncLinQ(PageResultBookDto input)
         {
             List<Book> result = (from book in _booksCollection.AsQueryable()
@@ -96,28 +120,47 @@ namespace DemoMongoDB.Services
             return result;
         }
         
+        /// <summary>
+        /// Xem thông tin chi tiết
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         public async Task<Book?> GetAsync(string id) =>
             await _booksCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
 
+        /// <summary>
+        /// Thêm mới
+        /// </summary>
+        /// <param name="newBook"></param>
+        /// <returns></returns>
         public async Task CreateAsync(Book newBook) =>
             await _booksCollection.InsertOneAsync(newBook);
 
+        /// <summary>
+        /// Cập nhật
+        /// </summary>
+        /// <param name="id"></param>
+        /// <param name="updatedBook"></param>
+        /// <returns></returns>
         public async Task UpdateAsync(string id, Book updatedBook) =>
             await _booksCollection.ReplaceOneAsync(x => x.Id == id, updatedBook);
 
+        /// <summary>
+        /// Xóa
+        /// </summary>
+        /// <param name="id"></param>
+        /// <returns></returns>
         public async Task RemoveAsync(string id) =>
             await _booksCollection.DeleteOneAsync(x => x.Id == id);
 
-        // Them collection User
-        public async Task CreateUserAsync(User input) =>
-            await _usersCollection.InsertOneAsync(input);
         
-        public async Task<List<object>> GetUserAsync()
-        {
-            var result = await _bookStoreDb.GetCollection<object>("Users").Find(_ => true).ToListAsync();
-            return result;
-        }
-
+        // Custom function
+        /// <summary>
+        /// Thêm điều kiện so sánh tuyệt đối cho filter, tương tự với where - equal bên sql
+        /// </summary>
+        /// <param name="filterJson"></param>
+        /// <param name="filter"></param>
+        /// <returns></returns>
         public BsonDocument AddEqualFilterBson(string filterJson, BsonDocument filter)
         {
             char[] charsToTrim = { '\"', '{', '}', '\\', ' ' };
@@ -132,6 +175,12 @@ namespace DemoMongoDB.Services
             return filter;
         }
 
+        /// <summary>
+        /// Thêm điều kiện so sánh tương đối cho filter, tương tự với where - like bên sql
+        /// </summary>
+        /// <param name="filterJson"></param>
+        /// <param name="filter"></param>
+        /// <returns></returns>
         public BsonDocument AddLikeFilterBson(string filterJson, BsonDocument filter)
         {
             char[] charsToTrim = { '\"', '{', '}', '\\', ' ' };
