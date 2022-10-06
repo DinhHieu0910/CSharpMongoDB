@@ -6,6 +6,7 @@ using Microsoft.Extensions.Options;
 using MongoDB.Bson;
 using MongoDB.Driver;
 using Newtonsoft.Json;
+using System.Reflection;
 using System.Xml.Linq;
 
 namespace DemoMongoDB.Services
@@ -47,28 +48,28 @@ namespace DemoMongoDB.Services
             }
             return await _booksCollection.Find(filter).Skip(input.Skip).Limit(input.PageSize).ToListAsync();
         }
-        public async Task<List<Book>> GetAsyncWithFilter(int pageNumber, int? pageSize, string filterJson)
+        public async Task<List<Book>> GetAsyncWithFilter(int pageNumber, int? pageSize, string filterEqual, string filterLike)
         {
             var filter = new BsonDocument { };
-
-            if (filterJson != null)
+            // Dynamic filter: Query theo kiểu tuyệt đối (equal) hoặc tương đối (like)
+            if (filterEqual != null)
             {
-                var filterObj = JsonConvert.DeserializeObject<object>(filterJson);
-                foreach (var item in filterObj.GetType().GetProperties())
-                {
-                    filter.Add(new BsonElement($"{item.Name}", $"{item.GetValue(filterObj, null)}"));
-                }
+                AddEqualFilterBson(filterEqual, filter);
             }
-            
+            if (filterLike != null)
+            {
+                AddLikeFilterBson(filterLike, filter);
+            }
+
             return await _booksCollection.Find(filter).Skip(pageSize * pageNumber).Limit(pageSize).ToListAsync();
         }
 
-        public string CreateJsonParams(string category, string author)
+        public string CreateJsonParams(CreateJsonParamsDto input)
         {
             return JsonConvert.SerializeObject(new 
             {
-                category = category,
-                author = author
+                Category = input.category,
+                Author = input.author
             });
         }
 
@@ -115,6 +116,34 @@ namespace DemoMongoDB.Services
         {
             var result = await _bookStoreDb.GetCollection<object>("Users").Find(_ => true).ToListAsync();
             return result;
+        }
+
+        public BsonDocument AddEqualFilterBson(string filterJson, BsonDocument filter)
+        {
+            char[] charsToTrim = { '\"', '{', '}', '\\', ' ' };
+            string[] objItem = filterJson.Trim(charsToTrim).Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var value in objItem)
+            {
+                string[] el = value.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+                var key = el[0].Trim(charsToTrim);
+                var val = el[1].Trim(charsToTrim);
+                filter.Add(new BsonElement(key, val));
+            }
+            return filter;
+        }
+
+        public BsonDocument AddLikeFilterBson(string filterJson, BsonDocument filter)
+        {
+            char[] charsToTrim = { '\"', '{', '}', '\\', ' ' };
+            string[] objItem = filterJson.Trim(charsToTrim).Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            foreach (var value in objItem)
+            {
+                string[] el = value.Split(new char[] { ':' }, StringSplitOptions.RemoveEmptyEntries);
+                var key = el[0].Trim(charsToTrim);
+                var val = el[1].Trim(charsToTrim);
+                filter.Add(new BsonElement(key, new BsonDocument { { "$regex", val }, { "$options", "i" } }));
+            }
+            return filter;
         }
     }
 }

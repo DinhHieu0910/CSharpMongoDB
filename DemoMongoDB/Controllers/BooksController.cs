@@ -21,16 +21,16 @@ namespace DemoMongoDB.Controllers
             await _booksService.GetAsync(input);
 
         [HttpGet("get-with-filter")]
-        public async Task<List<Book>> GetWithFillter(int pageNumber, int? pageSize, string filterJson) =>
-            await _booksService.GetAsyncWithFilter(pageNumber, pageSize ?? 100, filterJson);
+        public async Task<List<Book>> GetWithFillter(int pageNumber, int? pageSize, string filterEqual, string filterLike) =>
+            await _booksService.GetAsyncWithFilter(pageNumber, pageSize ?? 100, filterEqual, filterLike);
 
         [HttpGet("get-linQ")]
         public List<Book> GetLinQ([FromQuery] PageResultBookDto input) =>
             _booksService.GetAsyncLinQ(input);
 
         [HttpPost("create-json-params")]
-        public string CreateJsonParams(string category, string author) =>
-            _booksService.CreateJsonParams(category, author);
+        public string CreateJsonParams(CreateJsonParamsDto input) =>
+            _booksService.CreateJsonParams(input);
 
         [HttpGet("{id:length(24)}")]
         public async Task<ActionResult<Book>> Get(string id)
